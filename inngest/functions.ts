@@ -1,14 +1,19 @@
+import { createAgent, openai } from "@inngest/agent-kit";
 import { inngest } from "./client";
 
 export const processTask = inngest.createFunction(
   { id: "process-task", triggers: { event: "app/task.created" } },
   async ({ event, step }) => {
-    const result = await step.run("handle-task", async () => {
-      return { processed: true, id: event.data.id };
+    const summarizer = createAgent({
+      name: "Summarizer",
+      system: "You are an expert summarizer. You summarize in 2 words.",
+      model: openai({ model: "gpt-4o" }),
     });
 
-    await step.sleep("pause", "1s");
+    const { output } = await summarizer.run(
+      `Summarize the following result: ${event.data.value}`,
+    );
 
-    return { message: `Task ${event.data.id} complete`, result };
+    return { output };
   },
 );
